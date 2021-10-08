@@ -22,9 +22,75 @@ public class AU_PlayerController : MonoBehaviour
     static Color myColor;
     SpriteRenderer myAvatarSprite;
 
+    //Role
+    [SerializeField] bool isImposter;
+    [SerializeField] InputAction KILL;
+
+    AU_PlayerController target;
+    [SerializeField] Collider myCollider;
+
+    bool isDead;
+
+    private void Awake()
+    {
+        KILL.performed += KillTarget;
+    }
+
     private void OnEnable()
     {
         WASD.Enable();
+        KILL.Disable();
+    }
+
+    public void SetRole(bool newRole)
+    {
+        isImposter = newRole;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.tag == "Player")
+        {
+            AU_PlayerController tempTarget = other.GetComponent<AU_PlayerController>();
+
+            if (isImposter)
+            {
+                if (tempTarget.isImposter) return;
+
+                else
+                {
+                    target = tempTarget;
+                }
+            }
+        }
+    }
+
+     void KillTarget(InputAction.CallbackContext context)
+    {
+        if(context.phase == InputActionPhase.Performed)
+        {
+            if(target == null)
+            {
+                return;
+            }
+            else
+            {
+                if (target.isDead) return;
+
+                transform.position = target.transform.position;
+                target.Die();
+
+                target = null;
+            }
+        }
+    }
+
+    public void Die()
+    {
+        isDead = true;
+
+        myAnim.SetBool("IsDead", isDead);
+        myCollider.enabled = false;
     }
 
     private void OnDisable()
@@ -48,12 +114,15 @@ public class AU_PlayerController : MonoBehaviour
 
         if (myColor == Color.clear) myColor = Color.white;
 
+        if (!hasControl) return;
+
         myAvatarSprite.color = myColor;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (!hasControl) return;
         movementInput = WASD.ReadValue<Vector2>();
 
         if (movementInput.x != 0) myAvatar.localScale = new Vector2(Mathf.Sign(movementInput.x), 1);
